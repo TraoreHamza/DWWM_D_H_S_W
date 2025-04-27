@@ -24,7 +24,7 @@ const Footer = () => {
                     <img src="/img/qrc.png" alt="" className="w-80" />
                 </div>
             </div>
-            <p className="text-center text-white py-5 text-2xl"> &copy; Hackathon DWWM</p>
+            <p className="text-center text-white py-5 text-2xl"> &copy; HACKATHON DWWM</p>
             </footer>
         </div>
     );
