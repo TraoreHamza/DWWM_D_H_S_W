@@ -3,6 +3,7 @@ import * as tf from "@tensorflow/tfjs";
 import * as cocossd from "@tensorflow-models/coco-ssd";
 import Webcam from "react-webcam";
 import { drawRect } from "../assets/js/utilities.js";
+import Sound from "../assets/sound_capture.mp3";
 
 function Detection() {
   const webcamRef = useRef(null);
@@ -26,6 +27,13 @@ function Detection() {
     }, 10);
   };
 
+  // Fonction de detection pour le modèle COCO-SSD
+  // Utilisation de la webcam pour la détection d'objets
+  // et affichage des résultats sur le canvas
+  // Utilisation de la fonction drawRect pour dessiner les rectangles autour des objets détectés
+  // Utilisation de la fonction detect pour détecter les objets dans le flux vidéo
+  // Utilisation de la fonction setInterval pour mettre à jour la détection toutes les 10ms
+  // Utilisation de la fonction getScreenshot pour capturer une image de la webcam
   const detect = async (net) => {
     if (
       typeof webcamRef.current !== "undefined" &&
@@ -44,6 +52,11 @@ function Detection() {
       drawRect(obj, ctx);
     }
   };
+
+  const playSound = () => {
+    const audio = new Audio(Sound); // Remplacez par le chemin de votre fichier audio
+    audio.play();
+  }
 
   // Fonction de capture et sauvegarde
   const capture = React.useCallback(async () => {
@@ -86,45 +99,44 @@ function Detection() {
 
   return (
     <div className="App">
-      <Webcam
-        ref={webcamRef}
-        muted={true}
-        screenshotFormat="image/png"
-        width={640}
-        height={480}
-        style={{
-          marginLeft: "auto",
-          marginRight: "auto",
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          zIndex: 9,
-        }}
-      />
-      <canvas
-        ref={canvasRef}
-        style={{
-          position: "absolute",
-          marginLeft: "auto",
-          marginRight: "auto",
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          zIndex: 8,
-          width: 640,
-          height: 480,
-        }}
-      />
-      <button className="snapshot-btn" onClick={capture}>
+      <div className="flex flex-col ">
+       <Webcam
+          ref={webcamRef}
+          muted={true} 
+          style={{
+            position: "absolute",
+            marginLeft: "auto",
+            marginRight: "auto",
+            top:15,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            zindex: 9,
+            width: 640,
+            height: 480,
+          }}
+        />
+
+        <canvas
+          ref={canvasRef}
+          style={{
+            position: "absolute",
+            marginLeft: "auto",
+            marginRight: "auto",
+            top:15,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            zindex: 8,
+            width: 640,
+            height: 480,
+          }}
+        />
+      <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition" onClick={() => {capture(); playSound();}}>
         📸 Capture
       </button>
-      {imgSrc && (
-        <img
-          src={imgSrc}
-          alt="Snapshot"
-          style={{ marginTop: 10, width: 320, height: 240 }}
-        />
-      )}
+      
+      </div>
       {history.length > 0 && (
         <div style={{marginTop: 20}}>
           <h3>Historique des prédictions</h3>
@@ -133,7 +145,7 @@ function Detection() {
               <li key={idx}>
                 <strong>{item.date}</strong> - {item.name}
                 <br />
-                <img src={item.image} alt="Snapshot" style={{width: 160, margin: 5}} />
+                <img src={item.image} alt="Snapshot" style={{ width: 160, margin: 5 }}/>
               </li>
             ))}
           </ul>
