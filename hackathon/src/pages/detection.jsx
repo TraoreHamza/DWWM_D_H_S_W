@@ -120,7 +120,7 @@ function Detection() {
     <div className="flex w-full h-screen">
     <div className="bg-[#22333B]">
           <div className="flex flex-col items-center gap-6 p-4">
-    <div className="relative w-100 min-w-[700px]">
+    <div className="relative w-100 min-w-[700px]" id="bottom">
        <Webcam
           ref={webcamRef}
           muted={true} 
