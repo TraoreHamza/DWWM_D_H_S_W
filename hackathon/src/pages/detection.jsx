@@ -1,9 +1,10 @@
 import React, { useRef, useState, useEffect } from "react";
-import * as tf from "@tensorflow/tfjs";
 import * as cocossd from "@tensorflow-models/coco-ssd";
 import Webcam from "react-webcam";
 import { drawRect } from "../assets/js/utilities.js";
 import Sound from "../assets/sound_capture.mp3";
+import PredictionHistory from "../components/PredictionHistory";
+import Snapshot from "../assets/img/cam.png"
 
 function Detection() {
   const webcamRef = useRef(null);
@@ -18,6 +19,7 @@ function Detection() {
     predictions.push(prediction);
     localStorage.setItem("predictions", JSON.stringify(predictions));
   };
+
 
   // Main function
   const runCoco = async () => {
@@ -98,59 +100,34 @@ function Detection() {
   }, [imgSrc]);
 
   return (
-    <div className="App">
-      <div className="flex flex-col ">
+    <div className="flex w-full h-screen">
+    <div className="bg-[#22333B]">
+          <div className="flex flex-col items-center gap-6 p-4">
+    <div className="relative w-100 min-w-[700px]">
        <Webcam
           ref={webcamRef}
           muted={true} 
-          style={{
-            position: "absolute",
-            marginLeft: "auto",
-            marginRight: "auto",
-            top:15,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            zindex: 9,
-            width: 640,
-            height: 480,
-          }}
+          className="top-0 left-0 w-full h-auto z-8 rounded-lg "
         />
 
         <canvas
           ref={canvasRef}
-          style={{
-            position: "absolute",
-            marginLeft: "auto",
-            marginRight: "auto",
-            top:15,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            zindex: 8,
-            width: 640,
-            height: 480,
-          }}
+          className="absolute top-0 left-0 w-full h-auto z-9 rounded-lg"
         />
-      <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition" onClick={() => {capture(); playSound();}}>
-        📸 Capture
+       <button
+        onClick={() => {capture(); playSound();}}
+        className=" w-20 h-20 m-5"
+      >
+         <img src={Snapshot} alt="Snap Shot" />
       </button>
-      
-      </div>
-      {history.length > 0 && (
-        <div style={{marginTop: 20}}>
-          <h3>Historique des prédictions</h3>
-          <ul>
-            {history.map((item, idx) => (
-              <li key={idx}>
-                <strong>{item.date}</strong> - {item.name}
-                <br />
-                <img src={item.image} alt="Snapshot" style={{ width: 160, margin: 5 }}/>
-              </li>
-            ))}
-          </ul>
+      <div className="text-[#c4c4c4] text-2xl p-5 gap-4 flex flex-col">
+           <p>Please position the target object directly in front of the camera, ensuring there are no other items obstructing its visibility.</p>
+          <p>After capturing your photo, you will be able to view it on the right along with the following information: Date and Type.</p>
         </div>
-      )}
+         </div>
+      </div>
+      </div>
+      <PredictionHistory history={history} />
     </div>
   );
 }
