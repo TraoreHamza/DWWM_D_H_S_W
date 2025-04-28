@@ -9,7 +9,7 @@ const Header = () => {
 
   useEffect(() => {
     // Simuler le chargement de la page a l'aide d'un setTimeout
-    const timer = setTimeout(() => setLoading(false), 4000); // 4 secondes
+    const timer = setTimeout(() => setLoading(false), 2000); // 4 secondes
     return () => clearTimeout(timer); // Retuner la fonction de nettoyage pour éviter les fuites de mémoire
   }, []);
   
