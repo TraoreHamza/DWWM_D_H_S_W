@@ -13,8 +13,12 @@ function Detection() {
   const [history, setHistory] = useState([]);
 
   // Sauvegarde dans le localStorage
+  // Utilisation de la fonction setItem pour sauvegarder l'objet prediction dans le localStorage
+  // Utilisation de la fonction getItem pour récupérer l'objet prediction du localStorage
+  // Utilisation de la fonction JSON.stringify pour convertir l'objet prediction en chaîne de caractères
+  // Utilisation de la fonction JSON.parse pour convertir la chaîne de caractères en objet prediction
   const savePrediction = (prediction) => {
-    const stored = localStorage.getItem("predictions");
+    const stored = localStorage.getItem("predictions"); 
     const predictions = stored ? JSON.parse(stored) : [];
     predictions.push(prediction);
     localStorage.setItem("predictions", JSON.stringify(predictions));
@@ -42,49 +46,57 @@ function Detection() {
       webcamRef.current !== null &&
       webcamRef.current.video.readyState === 4
     ) {
-      const video = webcamRef.current.video;
-      const videoWidth = webcamRef.current.video.videoWidth;
-      const videoHeight = webcamRef.current.video.videoHeight;
-      webcamRef.current.video.width = videoWidth;
-      webcamRef.current.video.height = videoHeight;
-      canvasRef.current.width = videoWidth;
-      canvasRef.current.height = videoHeight;
-      const obj = await net.detect(video);
-      const ctx = canvasRef.current.getContext("2d");
-      drawRect(obj, ctx);
+      const video = webcamRef.current.video; // Récupération de la vidéo
+      const videoWidth = webcamRef.current.video.videoWidth; // Récupération de la largeur de la vidéo
+      const videoHeight = webcamRef.current.video.videoHeight; // Récupération de la hauteur de la vidéo
+      webcamRef.current.video.width = videoWidth; // Définition de la largeur de la vidéo
+      webcamRef.current.video.height = videoHeight; // Définition de la hauteur de la vidéo
+      canvasRef.current.width = videoWidth; // Définition de la largeur du canvas
+      canvasRef.current.height = videoHeight; // Définition de la hauteur du canvas
+      const obj = await net.detect(video); // Détection des objets dans la vidéo
+      const ctx = canvasRef.current.getContext("2d"); // Récupération du contexte du canvas
+      drawRect(obj, ctx); // Dessin des rectangles autour des objets détectés
     }
   };
-
+  // Fonction pour jouer le son de capture
+  // Utilisation de la fonction Audio pour jouer le son de captureA
   const playSound = () => {
-    const audio = new Audio(Sound); // Remplacez par le chemin de votre fichier audio
+    const audio = new Audio(Sound); 
     audio.play();
   }
 
   // Fonction de capture et sauvegarde
+  // Utilisation de la fonction getScreenshot pour capturer une image de la webcam
   const capture = React.useCallback(async () => {
     const imageSrc = webcamRef.current.getScreenshot();
     setImgSrc(imageSrc);
 
     let predictions = [];
+    // Si la webcam est prête, détecter les objets dans l'image capturée
+    // Alors on charge le modèle COCO-SSD et on détecte les objets
     if (
-      typeof webcamRef.current !== "undefined" &&
+      typeof webcamRef.current !== "undefined" && 
       webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4
+      webcamRef.current.video.readyState === 4 
     ) {
-      const net = await cocossd.load();
-      const video = webcamRef.current.video;
-      predictions = await net.detect(video);
+      const net = await cocossd.load(); // Chargement du modèle COCO-SSD
+      const video = webcamRef.current.video; // Récupération de la vidéo
+      predictions = await net.detect(video); // Détection des objets dans la vidéo
     }
-
+    // On crée un objet prediction avec le nom, la date, l'image et les objets détectés
+    // On sauvegarde l'objet prediction dans le localStorage
     const prediction = {
-      name: predictions.length > 0 ? predictions.map(p => p.class).join(", ") : "Aucune détection",
-      date: new Date().toLocaleString(),
+      name: predictions.length > 0 ? predictions.map(p => p.class).join(", ") : "Aucune détection", 
+      // On utilise la fonction toLocaleString pour formater la date et l'heure
+      date: new Date().toLocaleString(), // Date et heure de la capture
       image: imageSrc,
       objects: predictions
     };
 
-    savePrediction(prediction);
-
+     savePrediction(prediction);
+    // Si l'image est capturée, on crée un lien pour télécharger l'image
+    // On utilise la fonction createElement pour créer un lien de téléchargement
+    // On utilise la fonction click pour simuler un clic sur le lien
     if (imageSrc) {
       const link = document.createElement('a');
       link.href = imageSrc;
@@ -93,9 +105,14 @@ function Detection() {
     }
   }, [webcamRef]);
 
-  useEffect(() => { runCoco(); }, []);
+  // Utilisation de la fonction useEffect pour mettre à jour l'état de l'historique des prédictions
+  useEffect(() => { runCoco(); }, []); // Chargement du modèle COCO-SSD au démarrage du composant
+
   useEffect(() => {
+  // Vérification si l'image est capturée
     const stored = localStorage.getItem("predictions");
+  // Si Stored est défini, on parse l'objet JSON et on met à jour l'état de l'historique
+  // Sinon, on met à jour l'état de l'historique
     if (stored) setHistory(JSON.parse(stored));
   }, [imgSrc]);
 

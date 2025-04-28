@@ -9,6 +9,8 @@ function PredictionHistory({ history }) {
     setHistory(history);
   }, [history]);
   // Affiche un message si l'historique est vide
+  // Si l'historique est vide, affiche un message indiquant qu'il n'y a pas d'historique
+  // Sinon, affiche l'historique des prédictions
   if (!historie.length) {
     return (
       <div className="flex flex-col items-center">
@@ -21,8 +23,10 @@ function PredictionHistory({ history }) {
       </div>
     );
   }
-
-
+  // Calculer les indices de début et de fin pour la pagination
+  // Utiliser slice pour obtenir les éléments de l'historique à afficher sur la page actuelle
+  // Calculer le nombre total de pages
+  // Créer des fonctions pour aller à la page suivante et précédente
   const startIndex = currentPage * itemsPerPage;
   const selectedHistory = history.slice(startIndex, startIndex + itemsPerPage);
   const totalPages = Math.ceil(history.length / itemsPerPage);
@@ -36,7 +40,8 @@ function PredictionHistory({ history }) {
   };
 
    // Fonction pour retirer une image de l'historique
-  
+   // Cette fonction prend l'index de l'image à retirer et met à jour l'état de l'historique
+   // Elle utilise la fonction setHistory pour mettre à jour l'état
    const removeImgSrc = (idxOnPage) => { 
     const globalIdx = startIndex + idxOnPage;
     const updatedHistory = historie.filter((_, idx) => idx !== globalIdx);
