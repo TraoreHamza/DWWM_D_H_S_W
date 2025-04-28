@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import LiquidPagination from "./LiquidPagination"; // Importation du composant LiquidPagination
 
 function PredictionHistory({ history }) {
   const [currentPage, setCurrentPage] = useState(0); // Nouvelle page
@@ -31,17 +32,9 @@ function PredictionHistory({ history }) {
   const selectedHistory = history.slice(startIndex, startIndex + itemsPerPage);
   const totalPages = Math.ceil(history.length / itemsPerPage);
 
-  const goToNextPage = () => {
-    if (currentPage < totalPages - 1) setCurrentPage(currentPage + 1);
-  };
-
-  const goToPreviousPage = () => {
-    if (currentPage > 0) setCurrentPage(currentPage - 1);
-  };
-
    // Fonction pour retirer une image de l'historique
    // Cette fonction prend l'index de l'image à retirer et met à jour l'état de l'historique
-   // Elle utilise la fonction setHistory pour mettre à jour l'état
+  // Elle utilise la fonction setHistory pour mettre à jour l'état
    const removeImgSrc = (idxOnPage) => { 
     const globalIdx = startIndex + idxOnPage;
     const updatedHistory = historie.filter((_, idx) => idx !== globalIdx);
@@ -52,27 +45,46 @@ function PredictionHistory({ history }) {
   };
 
   return (
-    <div className="mt-5">
+    <div className="mt-5 relative">
       <h3 className="text-2xl font-semibold mb-4 px-5 uppercase">
         Historique des prédictions
       </h3>
 
-      <ul className="space-y-6 grid grid-cols-4 relative">
+      <ul className=" grid 
+        grid-cols-1 
+        sm:grid-cols-2 
+        md:grid-cols-3 
+        lg:grid-cols-4 
+        gap-6 
+        px-5
+        md:px-10
+        ">
         {selectedHistory.map((item, idx) => (
-          <li key={idx} className="bg-[#c4c4c4]/15 backdrop-blur border border-white/30 rounded-lg shadow-md flex flex-col p-4 gap-2 mx-5 w-50 h-60">
+          <li key={idx} className="bg-[#c4c4c4]/15 
+            backdrop-blur 
+            border border-white/30 
+            rounded-lg 
+            shadow-md 
+            flex flex-col 
+            p-3 md:p-4 
+            gap-2 
+            relative
+            min-h-[220px] 
+            md:min-h-[240px]
+            overflow-hidden">
             
             {item.image && (
-              <img
-                src={item.image}
-                alt="Snapshot"
-                className="w-50 rounded"
-              />
-            )}
-            <div className="text-m mb-2">
-              <div>{item.date} | {item.time}</div>
-              <div className="flex flex-wrap w-full font-bold uppercase">{item.name}</div>
-            </div>
-             <button className="absolute top-0 right-0 text-black hover:text-red-500 c" onClick={() => removeImgSrc(idx)}>
+                <img
+                    src={item.image}
+                    alt="Snapshot"
+                    className="w-full h-32 md:h-40 object-cover rounded mb-2"
+                />
+                )}
+                <div className="text-sm md:text-base mb-2">
+                <div className="truncate">{item.date}{item.time ? ` | ${item.time}` : ''}</div>
+                <div className="flex flex-wrap w-full font-bold uppercase">{item.name}</div>
+                </div>
+             <button className="absolute top-0 right-0 text-black hover:text-red-500 " onClick={() => removeImgSrc(idx)}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
@@ -81,23 +93,13 @@ function PredictionHistory({ history }) {
         ))}
       </ul>
 
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center  gap-4">
-        <button
-          onClick={goToPreviousPage}
-          disabled={currentPage === 0}
-          className="px-4 py-2 bg-gray-500 text-white rounded disabled:opacity-50"
-        >
-          Précédent
-        </button>
-        <span className="text-xl font-semibold">{currentPage + 1} / {totalPages}</span>
-        <button
-          onClick={goToNextPage}
-          disabled={currentPage === totalPages - 1}
-          className="px-4 py-2 bg-gray-500 text-white rounded disabled:opacity-50"
-        >
-          Suivant
-        </button>
+        {/* Pagination centrée */}
+        <div className="flex justify-center mt-8">
+        <LiquidPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          goToPage={setCurrentPage}
+        />
       </div>
     </div>
   );
