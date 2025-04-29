@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
-import * as tf from "@tensorflow/tfjs";
 import * as cocossd from "@tensorflow-models/coco-ssd";
 import { drawRect } from "../assets/js/utilities";
 import PredictionHistory from "../components/PredictionHistory";
@@ -38,7 +37,7 @@ function Detection() {
   }, []);
 
   const detect = async () => {
-    const video = webcamRef.current?.video;
+    const video = webcamRef.current?.video; 
     const net = modelRef.current;
     // Si la vidéo n'est pas prête ou si le modèle n'est pas chargé, on sort de la fonction
     if (!video || video.readyState !== 4 || !canvasRef.current || !net) return;
@@ -66,10 +65,10 @@ function Detection() {
 
     // Vérifier si l'URL de l'image est valide
     try {
-      const blob = await (await fetch(imageSrc)).blob();
+      const blob = await (await fetch(imageSrc)).blob(); 
       const formData = new FormData();
 
-      formData.append('snapshot', blob, 'snapshot.png');
+      formData.append('snapshot', blob, 'snapshot.png'); // 
       formData.append('person', person);
       
       // Si labels est un tableau, on les ajoute un par un
@@ -125,14 +124,14 @@ function Detection() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full h-auto min-h-screen">
+    <div className="flex flex-col md:flex-row w-full h-auto min-h-screen" id="bottom">
       {/* Zone caméra */}
       <div
         className="bg-[#22333B] w-full md:w-1/3 flex flex-col gap-6 p-4"
         style={{ backgroundImage: `url(${noise2})` }}
       >
         <div className="flex flex-col gap-6 p-4 w-full">
-          <div className="relative w-full min-w-0 mx-auto aspect-video" id="bottom">
+          <div className="relative w-full min-w-0 mx-auto aspect-video min-h-[200px]" >
             <Webcam
               ref={webcamRef}
               muted
