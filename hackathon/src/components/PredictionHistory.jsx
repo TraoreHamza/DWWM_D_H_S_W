@@ -1,100 +1,117 @@
 import React, { useState, useEffect } from "react";
-import LiquidPagination from "./LiquidPagination"; // Importation du composant LiquidPagination
+import LiquidPagination from "./LiquidPagination";
 
-function PredictionHistory({ history }) {
-  const [currentPage, setCurrentPage] = useState(0); // Nouvelle page
-  const [historie, setHistory] = useState([]);
-  const itemsPerPage = 12; // 12 cartes par page
+function PredictionHistory() {
+  const [history, setHistory] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(12); // Dynamique selon l'écran
 
   useEffect(() => {
-    setHistory(history);
-  }, [history]);
-  // Affiche un message si l'historique est vide
-  // Si l'historique est vide, affiche un message indiquant qu'il n'y a pas d'historique
-  // Sinon, affiche l'historique des prédictions
-  if (!historie.length) {
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/snapshots');
+        const data = await response.json();
+        setHistory(data.reverse());
+      } catch (error) {
+        console.error('Failed to fetch snapshots', error);
+      }
+    };
+
+    fetchHistory();
+  }, []);
+
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      const width = window.innerWidth;
+      if (width <= 640) {
+        setItemsPerPage(4); // Mobile
+      } else if (width <= 1400) {
+        setItemsPerPage(6); // Tablette
+      } else {
+        setItemsPerPage(12); // PC
+      }
+    };
+
+    updateItemsPerPage();
+    window.addEventListener('resize', updateItemsPerPage);
+    return () => window.removeEventListener('resize', updateItemsPerPage);
+  }, []);
+
+  if (!history.length) {
     return (
-      <div className="flex flex-col items-center">
-        <h3 className="text-2xl font-semibold mb-4 px-5 uppercase">
-          Historique des prédictions
-        </h3>
-        <p className="text-gray-500 text-lg italic">
-          Aucun historique pour le moment.
-        </p>
+      <div className="flex flex-col items-center justify-center mt-10">
+        <h3 className="text-2xl font-semibold mb-4 px-5 uppercase">Gallery History</h3>
+        <p className="text-gray-500 text-lg italic">No history yet.</p>
       </div>
     );
   }
-  // Calculer les indices de début et de fin pour la pagination
-  // Utiliser slice pour obtenir les éléments de l'historique à afficher sur la page actuelle
-  // Calculer le nombre total de pages
-  // Créer des fonctions pour aller à la page suivante et précédente
+
   const startIndex = currentPage * itemsPerPage;
   const selectedHistory = history.slice(startIndex, startIndex + itemsPerPage);
   const totalPages = Math.ceil(history.length / itemsPerPage);
 
-   // Fonction pour retirer une image de l'historique
-   // Cette fonction prend l'index de l'image à retirer et met à jour l'état de l'historique
-  // Elle utilise la fonction setHistory pour mettre à jour l'état
-   const removeImgSrc = (idxOnPage) => { 
-    const globalIdx = startIndex + idxOnPage;
-    const updatedHistory = historie.filter((_, idx) => idx !== globalIdx);
-    // Utilisation de la fonction setHistory pour mettre à jour l'état
-    setHistory(updatedHistory);
-    // Mise à jour du localStorage
-    localStorage.setItem("predictions", JSON.stringify(updatedHistory));
+  const removeSnapshot = async (snapshot) => {
+    if (!snapshot) return;
+
+    const confirmDelete = window.confirm("Are you sure you want to delete this snapshot?");
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`http://localhost:5000/snapshots/${snapshot.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        const updatedHistory = history.filter((snap) => snap.id !== snapshot.id);
+        setHistory(updatedHistory);
+        alert("Snapshot deleted successfully ✅");
+      } else {
+        console.error("Failed to delete snapshot on server");
+      }
+    } catch (error) {
+      console.error("Error deleting snapshot:", error);
+    }
   };
 
   return (
-    <div className="mt-5 relative">
-      <h3 className="text-2xl font-semibold mb-4 px-5 uppercase">
-        Historique des prédictions
+    <div className="mt-2 px-4">
+      <h3 className="text-2xl font-semibold mb-6 uppercase text-center">
+        Gallery History
       </h3>
 
-      <ul className=" grid 
-        grid-cols-1 
-        sm:grid-cols-2 
-        md:grid-cols-3 
-        lg:grid-cols-4 
-        gap-6 
-        px-5
-        md:px-10
-        ">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
         {selectedHistory.map((item, idx) => (
-          <li key={idx} className="bg-[#c4c4c4]/15 
-            backdrop-blur 
-            border border-white/30 
-            rounded-lg 
-            shadow-md 
-            flex flex-col 
-            p-3 md:p-4 
-            gap-2 
-            relative
-            min-h-[220px] 
-            md:min-h-[240px]
-            overflow-hidden">
-            
-            {item.image && (
-                <img
-                    src={item.image}
-                    alt="Snapshot"
-                    className="w-full h-32 md:h-40 object-cover rounded mb-2"
-                />
-                )}
-                <div className="text-sm md:text-base mb-2">
-                <div className="truncate">{item.date}{item.time ? ` | ${item.time}` : ''}</div>
-                <div className="flex flex-wrap w-full font-bold uppercase">{item.name}</div>
-                </div>
-             <button className="absolute top-0 right-0 text-black hover:text-red-500 " onClick={() => removeImgSrc(idx)}>
+          <li key={idx} className="relative bg-[#c4c4c4]/15 backdrop-blur border border-white/30 rounded-lg shadow-md flex flex-col p-4 gap-2 transition hover:scale-105 duration-300">
+            <button
+              className="absolute -top-2 -right-2 text-black hover:text-red-500"
+              onClick={() => removeSnapshot(item)}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
-             </button>
+            </button>
+
+            {item.filepath && (
+              <img
+                src={`http://localhost:5000${item.filepath}`}
+                alt="Snapshot"
+                className="rounded w-full object-cover h-40 sm:h-48 md:h-56 lg:h-60"
+              />
+            )}
+
+            <div className="text-sm text-center">
+              <div>{item.date} | {item.time}</div>
+              <div className="flex flex-wrap justify-center gap-1 font-semibold uppercase mt-1">
+                {item.labels.map((label, idx2) => (
+                  <span key={idx2} className="px-1">{label}</span>
+                ))}
+              </div>
+            </div>
           </li>
         ))}
       </ul>
 
-        {/* Pagination centrée */}
-        <div className="flex justify-center mt-8">
+      <div className="flex justify-center mt-8">
         <LiquidPagination
           currentPage={currentPage}
           totalPages={totalPages}

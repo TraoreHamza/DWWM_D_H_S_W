@@ -1,50 +1,58 @@
-import React, { useRef, useState, useEffect } from "react";
-import * as cocossd from "@tensorflow-models/coco-ssd";
+import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
-import { drawRect } from "../assets/js/utilities.js";
-import Sound from "../assets/sound_capture.mp3";
+import * as tf from "@tensorflow/tfjs";
+import * as cocossd from "@tensorflow-models/coco-ssd";
+import { drawRect } from "../assets/js/utilities";
 import PredictionHistory from "../components/PredictionHistory";
-import Snapshot from "../assets/img/cam.png";
+import snapshot from "../assets/img/cam.png";
 import noise from "../assets/img/noise.png";
 import noise2 from "../assets/img/noise2.png";
+import Sound from "../assets/sound_capture.mp3";
 
 function Detection() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
-  const [imgSrc, setImgSrc] = useState(null);
-  const [history, setHistory] = useState([]);
+  const modelRef = useRef(null);
+  const [reloadId, setReloadId] = useState(0);
 
-  const savePrediction = (prediction) => {
-    const stored = localStorage.getItem("predictions");
-    const predictions = stored ? JSON.parse(stored) : [];
-    predictions.push(prediction);
-    localStorage.setItem("predictions", JSON.stringify(predictions));
-  };
+  useEffect(() => {
+    const loadModel = async () => {
+      modelRef.current = await cocossd.load();
+    };
+    loadModel();
+  }, []);
 
-  const runCoco = async () => {
-    const net = await cocossd.load();
-    setInterval(() => {
-      detect(net);
-    }, 10);
-  };
+  useEffect(() => {
+    let animationFrameId;
 
-  const detect = async (net) => {
-    if (
-      typeof webcamRef.current !== "undefined" &&
-      webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4
-    ) {
-      const video = webcamRef.current.video;
-      const videoWidth = webcamRef.current.video.videoWidth;
-      const videoHeight = webcamRef.current.video.videoHeight;
-      webcamRef.current.video.width = videoWidth;
-      webcamRef.current.video.height = videoHeight;
-      canvasRef.current.width = videoWidth;
-      canvasRef.current.height = videoHeight;
-      const obj = await net.detect(video);
-      const ctx = canvasRef.current.getContext("2d");
-      drawRect(obj, ctx);
-    }
+    const runDetection = async () => {
+      await detect();
+      animationFrameId = requestAnimationFrame(runDetection);
+    };
+
+    runDetection();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  const detect = async () => {
+    const video = webcamRef.current?.video;
+    const net = modelRef.current;
+
+    if (!video || video.readyState !== 4 || !canvasRef.current || !net) return;
+
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    webcamRef.current.video.width = videoWidth;
+    webcamRef.current.video.height = videoHeight;
+    canvasRef.current.width = videoWidth;
+    canvasRef.current.height = videoHeight;
+
+    const predictions = await net.detect(video);
+    const ctx = canvasRef.current.getContext("2d");
+    drawRect(predictions, ctx);
   };
 
   const playSound = () => {
@@ -52,78 +60,91 @@ function Detection() {
     audio.play();
   };
 
-  const capture = React.useCallback(async () => {
-    const imageSrc = webcamRef.current.getScreenshot();
-    setImgSrc(imageSrc);
+  const uploadSnapshot = async (imageSrc, labels, person = "Unknown") => {
+    try {
+      const blob = await (await fetch(imageSrc)).blob();
+      const formData = new FormData();
 
+      formData.append('snapshot', blob, 'snapshot.png');
+      formData.append('person', person);
+
+      if (Array.isArray(labels)) {
+        labels.forEach(label => formData.append('labels', label));
+      } else {
+        formData.append('labels', labels || 'Unknown');
+      }
+
+      await fetch('http://localhost:5000/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('Upload successful');
+    } catch (error) {
+      console.error('Upload failed', error);
+    }
+  };
+
+  const capture = async () => {
+    const video = webcamRef.current?.video;
+
+    if (!video) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
+    const ctx = tempCanvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+    const imageSrc = tempCanvas.toDataURL('image/png');
+
+    const net = modelRef.current;
     let predictions = [];
-    if (
-      typeof webcamRef.current !== "undefined" &&
-      webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4
-    ) {
-      const net = await cocossd.load();
-      const video = webcamRef.current.video;
+
+    if (video && video.readyState === 4 && net) {
       predictions = await net.detect(video);
     }
-    const prediction = {
-      name: predictions.length > 0 ? predictions.map((p) => p.class).join(", ") : "Aucune détection",
-      date: new Date().toLocaleString(),
-      image: imageSrc,
-      objects: predictions,
-    };
 
-    savePrediction(prediction);
+    const labels = predictions.length > 0
+      ? predictions.map(p => p.class)
+      : ["No Detection"];
 
-    if (imageSrc) {
-      const link = document.createElement("a");
-      link.href = imageSrc;
-      link.download = "snapshot.png";
-      link.click();
-    }
-  }, [webcamRef]);
+    await uploadSnapshot(imageSrc, labels);
 
-  useEffect(() => {
-    runCoco();
-  }, []);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("predictions");
-    if (stored) setHistory(JSON.parse(stored));
-  }, [imgSrc]);
+    setReloadId(prev => prev + 1);
+  };
 
   return (
     <div className="flex flex-col md:flex-row w-full h-auto min-h-screen">
-      {/* Partie Webcam & capture */}
+      {/* Zone caméra */}
       <div
-        className="bg-[#22333B] w-full md:w-1/2 flex flex-col gap-6 p-4"
-        style={{
-          backgroundImage: `url(${noise2})`,
-        }}
+        className="bg-[#22333B] w-full md:w-1/3 flex flex-col gap-6 p-4"
+        style={{ backgroundImage: `url(${noise2})` }}
       >
         <div className="flex flex-col gap-6 p-4 w-full">
-          <div className="relative w-full  min-w-0 mx-auto aspect-video" id="bottom">
+          <div className="relative w-full min-w-0 mx-auto aspect-video" id="bottom">
             <Webcam
               ref={webcamRef}
-              muted={true}
-              className="absolute top-0 left-0 w-full h-full object-cover z-8 rounded-lg"
+              muted
               screenshotFormat="image/png"
+              className="absolute top-0 left-0 w-full h-full object-cover z-8 rounded-lg"
             />
             <canvas
               ref={canvasRef}
               className="absolute top-0 left-0 w-full h-full object-cover z-9 rounded-lg pointer-events-none"
             />
           </div>
+
+          {/* Bouton Capture */}
           <button
-            onClick={() => {
-              capture();
-              playSound();
-            }}
-            className="w-16 h-16 md:w-20 md:h-20 cursor-pointer"
+            onClick={() => { capture(); playSound(); }}
+            className="w-16 h-16 md:w-20 md:h-20 cursor-pointer mx-5"
           >
-            <img src={Snapshot} alt="Snap Shot" className="w-full h-full object-contain" />
+            <img src={snapshot} alt="Snap Shot" className="w-full h-full object-contain" />
           </button>
-          <div className="text-[#c4c4c4] text-base md:text-2xl p-2 md:p-5 gap-4 flex flex-col md:text-left">
+
+          {/* Instructions */}
+          <div className="text-[#c4c4c4] text-base md:text-2xl p-2 md:p-5 gap-4 flex flex-col md:text-left text-center">
             <p>
               Please position the target object directly in front of the camera, ensuring there are no other items obstructing its visibility.
             </p>
@@ -133,14 +154,13 @@ function Detection() {
           </div>
         </div>
       </div>
-      {/* Partie Historique */}
+
+      {/* Zone historique */}
       <div
-        className="bg-[#C4C4C4] noise-bg w-full md:w-1/2 min-h-[40vh] md:min-h-screen overflow-y-auto"
-        style={{
-          backgroundImage: `url(${noise})`,
-        }}
+        className="bg-[#C4C4C4] w-full md:w-2/3 min-h-[40vh] md:min-h-screen overflow-y-auto"
+        style={{ backgroundImage: `url(${noise})` }}
       >
-        <PredictionHistory history={history} />
+        <PredictionHistory key={reloadId} />
       </div>
     </div>
   );
