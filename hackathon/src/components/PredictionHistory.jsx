@@ -5,24 +5,32 @@ function PredictionHistory() {
   const [history, setHistory] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(12); // Dynamique selon l'écran
-
+  
+  // useEffect pour récupérer l'historique des snapshots
+  // et mettre à jour le nombre d'éléments par page en fonction de la taille de l'écran
   useEffect(() => {
     const fetchHistory = async () => {
+      // Récupérer l'historique des snapshots depuis le serveur
       try {
         const response = await fetch('http://localhost:5000/snapshots');
-        const data = await response.json();
+        const data = await response.json(); // Convertir la réponse en JSON
         setHistory(data.reverse());
       } catch (error) {
         console.error('Failed to fetch snapshots', error);
       }
     };
-
+    // Appeler la fonction pour récupérer l'historique
     fetchHistory();
   }, []);
-
+  
+  // useEffect pour mettre à jour le nombre d'éléments par page
+  // en fonction de la taille de l'écran
   useEffect(() => {
     const updateItemsPerPage = () => {
       const width = window.innerWidth;
+      // Si la largeur de l'écran est inférieure ou égale à 640px, on affiche 4 éléments par page
+      // Sinon si la largeur de l'écran est inférieure ou égale à 1400px, on affiche 6 éléments par page
+      // Sinon on affiche 12 éléments par page
       if (width <= 640) {
         setItemsPerPage(4); // Mobile
       } else if (width <= 1400) {
@@ -31,12 +39,14 @@ function PredictionHistory() {
         setItemsPerPage(12); // PC
       }
     };
-
+    // Update le nombre d'éléments par page au chargement de la page
     updateItemsPerPage();
-    window.addEventListener('resize', updateItemsPerPage);
-    return () => window.removeEventListener('resize', updateItemsPerPage);
+    window.addEventListener('resize', updateItemsPerPage); // Met à jour le nombre d'éléments par page lors du redimensionnement de la fenêtre
+    return () => window.removeEventListener('resize', updateItemsPerPage); // Nettoyage de l'événement lors du démontage du composant
   }, []);
-
+ 
+  // Si l'historique est vide, on affiche un message
+  // indiquant qu'il n'y a pas d'historique
   if (!history.length) {
     return (
       <div className="flex flex-col items-center justify-center mt-10">
@@ -46,25 +56,31 @@ function PredictionHistory() {
     );
   }
 
-  const startIndex = currentPage * itemsPerPage;
-  const selectedHistory = history.slice(startIndex, startIndex + itemsPerPage);
-  const totalPages = Math.ceil(history.length / itemsPerPage);
-
+  const startIndex = currentPage * itemsPerPage; // Calculer l'index de départ pour la pagination
+  const selectedHistory = history.slice(startIndex, startIndex + itemsPerPage); // Sélectionner les éléments à afficher sur la page actuelle
+  const totalPages = Math.ceil(history.length / itemsPerPage); // Calculer le nombre total de pages
+  
+  // Fonction pour supprimer un snapshot
   const removeSnapshot = async (snapshot) => {
+    // Si le snapshot n'existe pas, on sort de la fonction
     if (!snapshot) return;
 
-    const confirmDelete = window.confirm("Are you sure you want to delete this snapshot?");
+    const confirmDelete = window.confirm("Are you sure you want to delete this snapshot?"); // Demander confirmation à l'utilisateur avant de supprimer le snapshot
+    // Si l'utilisateur n'a pas confirmé, on sort de la fonction
     if (!confirmDelete) return;
 
     try {
       const response = await fetch(`http://localhost:5000/snapshots/${snapshot.id}`, {
         method: "DELETE",
       });
-
+      
+      // Si la réponse est OK, on met à jour l'historique local
+      // et on affiche un message de succès
       if (response.ok) {
         const updatedHistory = history.filter((snap) => snap.id !== snapshot.id);
         setHistory(updatedHistory);
         alert("Snapshot deleted successfully ✅");
+      // Sinon, on affiche un message d'erreur
       } else {
         console.error("Failed to delete snapshot on server");
       }

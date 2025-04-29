@@ -40,78 +40,87 @@ function Detection() {
   const detect = async () => {
     const video = webcamRef.current?.video;
     const net = modelRef.current;
-
+    // Si la vidéo n'est pas prête ou si le modèle n'est pas chargé, on sort de la fonction
     if (!video || video.readyState !== 4 || !canvasRef.current || !net) return;
 
-    const videoWidth = video.videoWidth;
-    const videoHeight = video.videoHeight;
-    webcamRef.current.video.width = videoWidth;
-    webcamRef.current.video.height = videoHeight;
-    canvasRef.current.width = videoWidth;
-    canvasRef.current.height = videoHeight;
+    const videoWidth = video.videoWidth; // Récupérer la largeur de la vidéo
+    const videoHeight = video.videoHeight; // Récupérer la hauteur de la vidéo
+    webcamRef.current.video.width = videoWidth; // Définir la largeur de la vidéo
+    webcamRef.current.video.height = videoHeight; // Définir la hauteur de la vidéo
+    canvasRef.current.width = videoWidth; // Définir la largeur du canvas
+    canvasRef.current.height = videoHeight; // Définir la hauteur du canvas
 
-    const predictions = await net.detect(video);
-    const ctx = canvasRef.current.getContext("2d");
-    drawRect(predictions, ctx);
-  };
+    const predictions = await net.detect(video); // Détecter les objets dans la vidéo
+    const ctx = canvasRef.current.getContext("2d"); // Récupérer le contexte du canvas
+    drawRect(predictions, ctx); // Dessiner les rectangles autour des objets détectés
 
+  // Fonction pour jouer le son
   const playSound = () => {
-    const audio = new Audio(Sound);
-    audio.play();
+    const audio = new Audio(Sound); // Créer une nouvelle instance de l'objet Audio
+    audio.play(); // Jouer le son
   };
-
+ 
+  // Fonction pour uploader la photo
   const uploadSnapshot = async (imageSrc, labels, person = "Unknown") => {
+
+    // Vérifier si l'URL de l'image est valide
     try {
       const blob = await (await fetch(imageSrc)).blob();
       const formData = new FormData();
 
       formData.append('snapshot', blob, 'snapshot.png');
       formData.append('person', person);
-
+      
+      // Si labels est un tableau, on les ajoute un par un
+      // Sinon, on ajoute le label "Unknown"
       if (Array.isArray(labels)) {
         labels.forEach(label => formData.append('labels', label));
       } else {
         formData.append('labels', labels || 'Unknown');
       }
-
+      
+      // Envoyer la requête POST avec l'image et les labels
       await fetch('http://localhost:5000/upload', {
         method: 'POST',
         body: formData,
       });
 
-      console.log('Upload successful');
+      console.log('Upload successful'); // Afficher un message de succès
     } catch (error) {
       console.error('Upload failed', error);
     }
   };
-
+ 
+  // Fonction pour capturer la photo
+  // et uploader l'image avec les labels
   const capture = async () => {
     const video = webcamRef.current?.video;
-
+    // Si la vidéo n'est pas prête, on sort de la fonction
     if (!video) return;
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = video.videoWidth;
+    const tempCanvas = document.createElement('canvas'); // Créer un canvas temporaire
+    tempCanvas.width = video.videoWidth; 
     tempCanvas.height = video.videoHeight;
     const ctx = tempCanvas.getContext('2d');
     ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-    const imageSrc = tempCanvas.toDataURL('image/png');
+    const imageSrc = tempCanvas.toDataURL('image/png'); // Convertir le canvas en image
 
-    const net = modelRef.current;
+    const net = modelRef.current; 
     let predictions = [];
-
+    // Si le modèle est chargé et la vidéo est prête, détecter les objets
+    // dans la vidéo et uploader l'image avec les labels
     if (video && video.readyState === 4 && net) {
       predictions = await net.detect(video);
     }
-
+    // Fonction labels pour récupérer les labels des objets détectés
     const labels = predictions.length > 0
-      ? predictions.map(p => p.class)
+      ? predictions.map(p => p.class) // Récupérer les labels des objets détectés
       : ["No Detection"];
 
-    await uploadSnapshot(imageSrc, labels);
+    await uploadSnapshot(imageSrc, labels); // Uploader l'image avec les labels
 
-    setReloadId(prev => prev + 1);
+    setReloadId(prev => prev + 1); // Mettre à jour l'ID de rechargement pour forcer le rechargement de l'historique
   };
 
   return (
@@ -164,6 +173,7 @@ function Detection() {
       </div>
     </div>
   );
+}
 }
 
 export default Detection;
