@@ -53,6 +53,7 @@ function Detection() {
     const predictions = await net.detect(video); // Détecter les objets dans la vidéo
     const ctx = canvasRef.current.getContext("2d"); // Récupérer le contexte du canvas
     drawRect(predictions, ctx); // Dessiner les rectangles autour des objets détectés
+  };
 
   // Fonction pour jouer le son
   const playSound = () => {
@@ -94,7 +95,7 @@ function Detection() {
   // Fonction pour capturer la photo
   // et uploader l'image avec les labels
   const capture = async () => {
-    const video = webcamRef.current?.video;
+    const video = webcamRef.current?.video; // 
     // Si la vidéo n'est pas prête, on sort de la fonction
     if (!video) return;
 
@@ -174,6 +175,6 @@ function Detection() {
     </div>
   );
 }
-}
+
 
 export default Detection;
